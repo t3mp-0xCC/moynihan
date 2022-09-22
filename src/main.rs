@@ -8,7 +8,7 @@ use notify::{
     RecursiveMode,
     Watcher,
     Config, EventKind,
-    event::{ModifyKind, MetadataKind},
+    event::{ModifyKind, DataChange},
 };
 use std::io::{BufRead, BufReader};
 use std::path::Path;
@@ -37,7 +37,8 @@ fn get_latest_log(log_path: &Path) -> String {
 }
 
 fn event_handler(event: Event) {
-    if event.kind == EventKind::Modify(ModifyKind::Metadata(MetadataKind::Any)) || event.kind == EventKind::Modify(ModifyKind::Any) {
+    // Event { kind: Modify(Data(Any))
+    if event.kind == EventKind::Modify(ModifyKind::Data(DataChange::Any)) {
         let last_log = get_latest_log(Path::new(LOG_PATH));
         println!("{}", last_log);
     }
