@@ -1,0 +1,3 @@
+2022/09/22 20:06:53 [error] 1036243#1036243: *3757623 no live upstreams while connecting to upstream, client: 192.168.11.2, server: , request: "GET /hoge HTTP/1.1", upstream: "http://localhost/flu/403.html", host: "192.168.11.1"
+2022/09/22 20:06:53 [error] 1036243#1036243: *3757624 no live upstreams while connecting to upstream, client: 192.168.11.3, server: , request: "GET /fuga HTTP/1.1", upstream: "http://localhost/", host: "192.168.11.1"
+2022/09/22 20:06:54 [error] 1036243#1036243: *3757626 no live upstreams while connecting to upstream, client: 192.168.11.4, server: , request: "GET /piyo HTTP/1.1", upstream: "http://localhost/", host: "192.168.11.1"
