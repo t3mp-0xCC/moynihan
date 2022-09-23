@@ -45,13 +45,10 @@ fn event_handler(event: Event) {
         let last_log = get_latest_log(Path::new(LOG_PATH));
         let parsed_log: NginxErrLog = parser::parser(last_log);
         let msg = String::from(format!(
-            "Payload detected!\n
-            {}\n
-            {}\n
-            from {}"
+            "Payload detected!\n{}\n{}\nfrom {}"
             , parsed_log.time
             , parsed_log.payload
-            , parsed_log.payload
+            , parsed_log.client
         ));
         match toot(msg) {
             Ok(_) => println!("send!"),
