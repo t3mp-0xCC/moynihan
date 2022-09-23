@@ -1,4 +1,4 @@
-use std::net::{IpAddr, Ipv4Addr, Ipv6Addr};
+//use std::net::{IpAddr, Ipv4Addr, Ipv6Addr};
 
 // 2022/09/22 20:06:53 [error] 1036243#1036243: *3757623 no live upstreams while connecting to upstream
 // client: 192.168.11.2
@@ -38,18 +38,17 @@ pub fn parser(log: String) -> NginxErrLog {
         None => panic!("Invalid log file"),
     }.to_string().replace(" client: ", "");
     // Server
-    let server = match v.pop() {
-        Some(s) => s,
-        None => panic!("Invalid log file"),
-    }.to_string().replace(" server: ", "");
+    //let server = match v.pop() {
+    //    Some(s) => s,
+    //    None => panic!("Invalid log file"),
+    //}.to_string().replace(" server: ", "");
     // Payload
     let payload = match v.pop() {
         Some(s) => s,
         None => panic!("Invalid log file"),
     }.to_string().replace(" request: ", "");
 
-    let parsed_log = NginxErrLog{ date, time, client, payload};
-    parsed_log
+    NginxErrLog{ date, time, client, payload}
 }
 
 #[cfg(test)]
