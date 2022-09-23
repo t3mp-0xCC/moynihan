@@ -15,6 +15,7 @@ use std::path::Path;
 use std::fs::File;
 
 use moynihan::parser::{self, NginxErrLog};
+use moynihan::mastodon::{self, toot};
 
 static LOG_PATH: &str = "/var/log/nginx/error.log";
 

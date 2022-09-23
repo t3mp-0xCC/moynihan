@@ -8,3 +8,4 @@ edition = "2021"
 [dependencies]
 futures = "0.3.21"
 notify = "5.0.0-pre.15"
+reqwest = "0.11.12"
