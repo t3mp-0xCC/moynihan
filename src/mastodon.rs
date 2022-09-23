@@ -1,9 +1,11 @@
 use std::fs::File;
 use std::io::{BufReader, BufRead};
 use std::path::Path;
+use std::collections::HashMap;
 
-static CONF_PATH: &str = "/etc/moynihan.conf";
+//static CONF_PATH: &str = "/etc/moynihan.conf";
 
+static CONF_PATH: &str = "./test/test.conf";
 struct ClientInfo {
     // ### /etc/moynihan.conf ###
     // INSTANCE: example.com
@@ -49,8 +51,17 @@ fn get_config(conf_path: &Path) -> ClientInfo {
     ClientInfo{ instance, token, visibility }
 }
 
-pub fn toot(msg: String) {
+pub fn toot(msg: String) -> Result<reqwest::blocking::Response, reqwest::Error> {
     let config: ClientInfo = get_config(Path::new(CONF_PATH));
+    let mut map = HashMap::new();
+    map.insert("status", msg);
+    map.insert("visibility", config.visibility);
+    let client = reqwest::blocking::Client::new();
+    let api_url = format!("https://{}/api/v1/statuses", config.instance);
+    client.post(api_url)
+        .header("Authorization", format!("Bearer {}", config.token))
+        .json(&map)
+        .send()
 }
 
 #[cfg(test)]
@@ -64,4 +75,5 @@ mod tests {
         assert_eq!(conf.token, "AABBCCDDEE");
         assert_eq!(conf.visibility, "public");
     }
+
 }
