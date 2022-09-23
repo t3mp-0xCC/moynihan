@@ -38,6 +38,7 @@ pub fn parser(log: String) -> NginxErrLog {
         None => panic!("Invalid log file"),
     }.to_string().replace(" client: ", "");
     // Server
+    v.pop();
     //let server = match v.pop() {
     //    Some(s) => s,
     //    None => panic!("Invalid log file"),
