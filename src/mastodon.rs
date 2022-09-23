@@ -3,9 +3,8 @@ use std::io::{BufReader, BufRead};
 use std::path::Path;
 use std::collections::HashMap;
 
-//static CONF_PATH: &str = "/etc/moynihan.conf";
+static CONF_PATH: &str = "/etc/moynihan.conf";
 
-static CONF_PATH: &str = "./test/test.conf";
 struct ClientInfo {
     // ### /etc/moynihan.conf ###
     // INSTANCE: example.com
