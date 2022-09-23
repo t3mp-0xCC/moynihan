@@ -7,11 +7,11 @@
 // upstream: "http://localhost/flu/403.html"
 // host: "192.168.11.1"
 pub struct NginxErrLog {
-    date: String,
-    time: String,
+    pub date: String,
+    pub time: String,
     //client: std::net::IpAddr,
-    client: String,
-    payload: String,
+    pub client: String,
+    pub payload: String,
 }
 
 pub fn parser(log: String) -> NginxErrLog {
@@ -39,10 +39,6 @@ pub fn parser(log: String) -> NginxErrLog {
     }.to_string().replace(" client: ", "");
     // Server
     v.pop();
-    //let server = match v.pop() {
-    //    Some(s) => s,
-    //    None => panic!("Invalid log file"),
-    //}.to_string().replace(" server: ", "");
     // Payload
     let payload = match v.pop() {
         Some(s) => s,
