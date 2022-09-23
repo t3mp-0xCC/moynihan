@@ -44,6 +44,19 @@ fn event_handler(event: Event) {
     if event.kind == EventKind::Modify(ModifyKind::Data(DataChange::Any)) {
         let last_log = get_latest_log(Path::new(LOG_PATH));
         let parsed_log: NginxErrLog = parser::parser(last_log);
+        let msg = String::from(format!(
+            "Payload detected!\n
+            {}\n
+            {}\n
+            from {}"
+            , parsed_log.time
+            , parsed_log.payload
+            , parsed_log.payload
+        ));
+        match toot(msg) {
+            Ok(_) => println!("send!"),
+            Err(_) => panic!("Cannot access mastodon instance"),
+        };
     }
 }
 
