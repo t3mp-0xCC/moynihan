@@ -45,7 +45,7 @@ fn event_handler(event: Event) {
         let last_log = get_latest_log(Path::new(LOG_PATH));
         let parsed_log: NginxErrLog = parser::parser(last_log);
         let msg = String::from(format!(
-            "Payload detected!\n{}\n{}\nfrom {}"
+            "Payload detected!\nTime: {}\nPayload:\n{}\nfrom {}"
             , parsed_log.time
             , parsed_log.payload
             , parsed_log.client
