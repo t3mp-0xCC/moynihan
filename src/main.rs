@@ -44,6 +44,11 @@ fn event_handler(event: Event) {
     if event.kind == EventKind::Modify(ModifyKind::Data(DataChange::Any)) {
         let last_log = get_latest_log(Path::new(LOG_PATH));
         let parsed_log: NginxErrLog = parser::parser(last_log);
+        match parsed_log.payload.as_str() {
+            // normal error
+            "\"GET / HTTP/1.1\"" => return,
+            _ => (),
+        }
         let msg = String::from(format!(
             "Payload detected!\nTime: {}\nPayload:\n{}\nfrom {}"
             , parsed_log.time
