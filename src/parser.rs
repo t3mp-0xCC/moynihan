@@ -1,6 +1,7 @@
 //use std::net::{IpAddr, Ipv4Addr, Ipv6Addr};
 
 use core::fmt;
+use std::fmt::Debug;
 
 
 // 2022/09/22 20:06:53 [error] 1036243#1036243: *3757623 no live upstreams while connecting to upstream
@@ -51,8 +52,20 @@ pub fn parser(log: String) -> ParserResult {
     let mut v: Vec<&str> = log.rsplit(',').collect();
 
     // Error Info
-    let info = v.pop();
-
+    let info = match v.pop() {
+        Some(s) => s,
+        None => return Err(NginxParserErr::InvalidLogFile),
+    };
+    //// if error is notice
+    match info.find("[notice]") {
+        Some(_) => return Err(NginxParserErr::LogIsNotice),
+        None => (),
+    }
+    //// if error is critical
+    match info.find("[crit]") {
+        Some(_) => return Err(NginxParserErr::LogIsCritical),
+        None => (),
+    }
 
     // Client
     let client = match v.pop() {
@@ -75,7 +88,7 @@ mod parser_tests {
     use super::*;
 
     #[test]
-    fn parser_test() {
+    fn parser_normal_log() {
         let test_log = String::from("2022/09/22 20:06:54 [error] 1036243#1036243: *3757626 no live upstreams while connecting to upstream, client: 192.168.11.4, server: , request: \"GET /piyo HTTP/1.1\", upstream: \"http://localhost/\", host: \"192.168.11.1\"");
         let parsed_log: NginxErrLog = match parser(test_log) {
             Ok(parsed_log) => parsed_log,
@@ -85,5 +98,10 @@ mod parser_tests {
         assert_eq!("20:06:54", parsed_log.time);
         assert_eq!("192.168.11.4", parsed_log.client);
         assert_eq!("\"GET /piyo HTTP/1.1\"", parsed_log.payload);
+    }
+    #[test]
+    fn parser_expect_log() {
+        let notice_log = String::from("2022/09/24 03:20:53 [notice] 1117565#1117565: signal process started");
+        let crit_log = String::from("2022/10/04 12:31:15 [crit] 1654810#1654810: *2021764 SSL_do_handshake() failed (SSL: error:141CF06C:SSL routines:tls_parse_ctos_key_share:bad key share) while SSL handshaking, client: 192.168.2.1, server: 0.0.0.0:443");
     }
 }
