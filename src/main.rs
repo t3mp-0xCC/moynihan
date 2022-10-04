@@ -50,6 +50,10 @@ fn event_handler(event: Event) {
         match parsed_log.payload.as_str() {
             // normal error
             "\"GET / HTTP/1.1\"" => return,
+            // favicon
+            "\"GET /favicon.ico HTTP/1.1\"" => return,
+            // robots.txt
+            "\"GET /robots.txt HTTP/1.1\"" => return,
             _ => (),
         }
         let msg = String::from(format!(
