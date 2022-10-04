@@ -14,7 +14,7 @@ use std::io::{BufRead, BufReader};
 use std::path::Path;
 use std::fs::File;
 
-use moynihan::parser::{self, NginxErrLog};
+use moynihan::parser::{self, NginxErrLog, NginxParserErr};
 use moynihan::mastodon::toot;
 
 static LOG_PATH: &str = "/var/log/nginx/error.log";
@@ -43,7 +43,10 @@ fn event_handler(event: Event) {
     // Event { kind: Modify(Data(Any))
     if event.kind == EventKind::Modify(ModifyKind::Data(DataChange::Any)) {
         let last_log = get_latest_log(Path::new(LOG_PATH));
-        let parsed_log: NginxErrLog = parser::parser(last_log);
+        let parsed_log: NginxErrLog = match parser::parser(last_log) {
+            Ok(parsed_log) => parsed_log,
+            Err(e) => println!("{}", e),
+        };
         match parsed_log.payload.as_str() {
             // normal error
             "\"GET / HTTP/1.1\"" => return,

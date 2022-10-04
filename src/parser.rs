@@ -1,5 +1,8 @@
 //use std::net::{IpAddr, Ipv4Addr, Ipv6Addr};
 
+use core::fmt;
+
+
 // 2022/09/22 20:06:53 [error] 1036243#1036243: *3757623 no live upstreams while connecting to upstream
 // client: 192.168.11.2
 // server:
@@ -14,7 +17,24 @@ pub struct NginxErrLog {
     pub payload: String,
 }
 
-pub fn parser(log: String) -> NginxErrLog {
+pub enum NginxParserErr {
+    LogIsNotice,
+    LogIsCritical,
+    InvalidLogFile,
+}
+impl fmt::Display for NginxParserErr {
+    fn fmt(&self, f:&mut fmt::Formatter) -> fmt::Result {
+        match *self {
+            NginxParserErr::LogIsNotice => write!(f, "Notice detected at Nginx Error Log"),
+            NginxParserErr::LogIsCritical => write!(f, "Critical detected at Nginx Error Log"),
+            NginxParserErr::InvalidLogFile => write!(f, "Invalid Nginx Error Log Detected"),
+        }
+    }
+}
+
+pub type ParserResult = Result<NginxErrLog, NginxParserErr>;
+
+pub fn parser(log: String) -> ParserResult {
     let mut date = "".to_string();
     let mut time = "".to_string();
 
@@ -31,21 +51,23 @@ pub fn parser(log: String) -> NginxErrLog {
     let mut v: Vec<&str> = log.rsplit(',').collect();
 
     // Error Info
-    v.pop();
+    let info = v.pop();
+
+
     // Client
     let client = match v.pop() {
         Some(s) => s,
-        None => panic!("Invalid log file"),
+        None => return Err(NginxParserErr::InvalidLogFile),
     }.to_string().replace(" client: ", "");
-    // Server
+    // Server (not being used now)
     v.pop();
     // Payload
     let payload = match v.pop() {
         Some(s) => s,
-        None => panic!("Invalid log file"),
+        None => return Err(NginxParserErr::InvalidLogFile),
     }.to_string().replace(" request: ", "");
 
-    NginxErrLog{ date, time, client, payload}
+    Ok(NginxErrLog{ date, time, client, payload})
 }
 
 #[cfg(test)]
@@ -54,8 +76,11 @@ mod parser_tests {
 
     #[test]
     fn parser_test() {
-        let log = String::from("2022/09/22 20:06:54 [error] 1036243#1036243: *3757626 no live upstreams while connecting to upstream, client: 192.168.11.4, server: , request: \"GET /piyo HTTP/1.1\", upstream: \"http://localhost/\", host: \"192.168.11.1\"");
-        let parsed_log: NginxErrLog = parser(log);
+        let test_log = String::from("2022/09/22 20:06:54 [error] 1036243#1036243: *3757626 no live upstreams while connecting to upstream, client: 192.168.11.4, server: , request: \"GET /piyo HTTP/1.1\", upstream: \"http://localhost/\", host: \"192.168.11.1\"");
+        let parsed_log: NginxErrLog = match parser(test_log) {
+            Ok(parsed_log) => parsed_log,
+            Err(e) => panic!("{}", e),
+        };
         assert_eq!("2022/09/22", parsed_log.date);
         assert_eq!("20:06:54", parsed_log.time);
         assert_eq!("192.168.11.4", parsed_log.client);
