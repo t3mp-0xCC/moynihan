@@ -10,6 +10,7 @@ use std::fmt::Debug;
 // request: "GET /hoge HTTP/1.1"
 // upstream: "http://localhost/flu/403.html"
 // host: "192.168.11.1"
+#[derive(Debug)]
 pub struct NginxErrLog {
     pub date: String,
     pub time: String,
@@ -18,6 +19,7 @@ pub struct NginxErrLog {
     pub payload: String,
 }
 
+#[derive(Debug)]
 pub enum NginxParserErr {
     LogIsNotice,
     LogIsCritical,
@@ -85,6 +87,7 @@ pub fn parser(log: String) -> ParserResult {
 
 #[cfg(test)]
 mod parser_tests {
+
     use super::*;
 
     #[test]
@@ -103,5 +106,9 @@ mod parser_tests {
     fn parser_expect_log() {
         let notice_log = String::from("2022/09/24 03:20:53 [notice] 1117565#1117565: signal process started");
         let crit_log = String::from("2022/10/04 12:31:15 [crit] 1654810#1654810: *2021764 SSL_do_handshake() failed (SSL: error:141CF06C:SSL routines:tls_parse_ctos_key_share:bad key share) while SSL handshaking, client: 192.168.2.1, server: 0.0.0.0:443");
+        let invalid_log = String::from("hoge fuga piyo wanna eat SHUSHI");
+        assert!(matches!(parser(notice_log).unwrap_err(), NginxParserErr::LogIsNotice));
+        assert!(matches!(parser(crit_log).unwrap_err(), NginxParserErr::LogIsCritical));
+        assert!(matches!(parser(invalid_log).unwrap_err(), NginxParserErr::InvalidLogFile));
     }
 }
