@@ -54,6 +54,8 @@ fn event_handler(event: Event) {
             "\"GET /favicon.ico HTTP/1.1\"" => return,
             // robots.txt
             "\"GET /robots.txt HTTP/1.1\"" => return,
+            // normal post error
+            "\"POST / HTTP/1.1\"" => return,
             _ => (),
         }
         let msg = String::from(format!(
