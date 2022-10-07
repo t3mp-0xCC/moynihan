@@ -14,7 +14,7 @@ use std::io::{BufRead, BufReader};
 use std::path::Path;
 use std::fs::File;
 
-use moynihan::parser::{self};
+use moynihan::parser::{self, NginxErrLog};
 use moynihan::mastodon::toot;
 
 static LOG_PATH: &str = "/var/log/nginx/error.log";
@@ -39,6 +39,26 @@ fn get_latest_log(log_path: &Path) -> String {
     last_log
 }
 
+fn check_cache(payload: &str) -> bool {
+    let cache_file_path = Path::new("/tmp/moynihan.cache");
+    // cache_file init
+    if !cache_file_path.exists() {
+        return false;
+    }
+    let cache_file = match File::open(cache_file_path) {
+        Ok(f) => f,
+        Err(e) => panic!("check_cache: {:?}", e),
+    };
+    let reader = BufReader::new(cache_file);
+    for cache in reader.lines().map(|l| l.unwrap()) {
+        if payload.eq(cache.as_str()) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
 fn event_handler(event: Event) {
     // Event { kind: Modify(Data(Any))
     if event.kind == EventKind::Modify(ModifyKind::Data(DataChange::Any)) {
@@ -47,6 +67,7 @@ fn event_handler(event: Event) {
             Ok(log) => log,
             Err(_) => return,
         };
+        // whitelist
         match parsed_log.payload.as_str() {
             // normal error
             "\"GET / HTTP/1.1\"" => return,
@@ -58,6 +79,8 @@ fn event_handler(event: Event) {
             "\"POST / HTTP/1.1\"" => return,
             _ => (),
         }
+        // reference cache database
+        check_cache(&parsed_log.payload);
         let msg = String::from(format!(
             "Payload detected!\nTime: {}\nPayload:\n{}\nfrom {}"
             , parsed_log.time
@@ -100,10 +123,31 @@ async fn async_watch<P: AsRef<Path>>(path: P) -> notify::Result<()> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::{process::Command, io::Write, fs};
     static LOG_PATH: &str = "./test/test.log";
     #[test]
     fn get_latest_log_test() {
         let last_log = get_latest_log(Path::new(LOG_PATH));
         assert_eq!(last_log, "2022/09/22 20:06:54 [error] 1036243#1036243: *3757626 no live upstreams while connecting to upstream, client: 192.168.11.4, server: , request: \"GET /piyo HTTP/1.1\", upstream: \"http://localhost/\", host: \"192.168.11.1\"")
+    }
+    #[test]
+    fn check_cache_test() {
+    let cache_file_path = Path::new("/tmp/moynihan.cache");
+    if cache_file_path.exists() {
+        Command::new("sh")
+            .arg("-c")
+            .arg("mv")
+            .arg("/tmp/moynihan.cache")
+            .arg("/tmp/moynihan.cache.bak")
+            .output()
+            .expect("Failed to backup exists cache file");
+    }
+    let mut f = File::create(cache_file_path).unwrap();
+    let test_payload = "\"GET /hoge HTTP/1.1\"";
+    let test_payload_2 = "\"GET /fuga HTTP/1.1\"";
+    f.write_all(test_payload.as_bytes()).unwrap();
+    assert!(check_cache(test_payload));
+    assert!(!check_cache(test_payload_2));
+    fs::remove_file(cache_file_path).unwrap();
     }
 }
