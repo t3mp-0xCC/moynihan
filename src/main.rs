@@ -10,7 +10,7 @@ use notify::{
     Config, EventKind,
     event::{ModifyKind, DataChange},
 };
-use std::io::{BufRead, BufReader};
+use std::io::{BufRead, BufReader, BufWriter, Write};
 use std::path::Path;
 use std::fs::File;
 
@@ -39,9 +39,22 @@ fn get_latest_log(log_path: &Path) -> String {
     last_log
 }
 
-fn check_cache(payload: &str) -> bool {
+fn add_payload_to_cache(payload: &str) -> Result<(), std::io::Error> {
     let cache_file_path = Path::new("/tmp/moynihan.cache");
     // cache_file init
+    if !cache_file_path.exists() {
+        match File::create(cache_file_path) {
+            Err(e) => panic!("add_payload_to_cache: {:?}", e),
+            Ok(_) => (),
+        };
+    }
+    let cache_file = File::open(cache_file_path)?;
+    let mut buf = BufWriter::new(cache_file);
+    writeln!(buf, "{}", payload)
+}
+
+fn check_cache(payload: &str) -> bool {
+    let cache_file_path = Path::new("/tmp/moynihan.cache");
     if !cache_file_path.exists() {
         return false;
     }
@@ -80,17 +93,19 @@ fn event_handler(event: Event) {
             _ => (),
         }
         // reference cache database
-        check_cache(&parsed_log.payload);
-        let msg = String::from(format!(
-            "Payload detected!\nTime: {}\nPayload:\n{}\nfrom {}"
-            , parsed_log.time
-            , parsed_log.payload
-            , parsed_log.client
-        ));
-        match toot(msg) {
-            Ok(_) => println!("send!"),
-            Err(_) => panic!("Cannot access mastodon instance"),
-        };
+        if !check_cache(&parsed_log.payload) {
+            add_payload_to_cache(&parsed_log.payload);
+            let msg = String::from(format!(
+                "Payload detected!\nTime: {}\nPayload:\n{}\nfrom {}"
+                , parsed_log.time
+                , parsed_log.payload
+                , parsed_log.client
+            ));
+            match toot(msg) {
+                Ok(_) => println!("send!"),
+                Err(_) => panic!("Cannot access mastodon instance"),
+            };
+        }
     }
 }
 
@@ -123,7 +138,7 @@ async fn async_watch<P: AsRef<Path>>(path: P) -> notify::Result<()> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::{process::Command, io::Write, fs};
+    use std::process::Command;
     static LOG_PATH: &str = "./test/test.log";
     #[test]
     fn get_latest_log_test() {
@@ -131,23 +146,32 @@ mod tests {
         assert_eq!(last_log, "2022/09/22 20:06:54 [error] 1036243#1036243: *3757626 no live upstreams while connecting to upstream, client: 192.168.11.4, server: , request: \"GET /piyo HTTP/1.1\", upstream: \"http://localhost/\", host: \"192.168.11.1\"")
     }
     #[test]
-    fn check_cache_test() {
-    let cache_file_path = Path::new("/tmp/moynihan.cache");
-    if cache_file_path.exists() {
-        Command::new("sh")
-            .arg("-c")
-            .arg("mv")
-            .arg("/tmp/moynihan.cache")
-            .arg("/tmp/moynihan.cache.bak")
-            .output()
-            .expect("Failed to backup exists cache file");
+    fn add_payload_to_cache_test() {
+        let test_payload_1 = "\"GET /hoge HTTP/1.1\"";
+        match add_payload_to_cache(test_payload_1) {
+            Ok(()) => (),
+            Err(e) => panic!("{:?}", e)
+        };
     }
-    let mut f = File::create(cache_file_path).unwrap();
-    let test_payload = "\"GET /hoge HTTP/1.1\"";
-    let test_payload_2 = "\"GET /fuga HTTP/1.1\"";
-    f.write_all(test_payload.as_bytes()).unwrap();
-    assert!(check_cache(test_payload));
-    assert!(!check_cache(test_payload_2));
-    fs::remove_file(cache_file_path).unwrap();
+    #[test]
+    #[ignore]
+    fn check_cache_test() {
+        let cache_file_path = Path::new("/tmp/moynihan.cache");
+        if cache_file_path.exists() {
+            Command::new("sh")
+                .arg("-c")
+                .arg("mv")
+                .arg("/tmp/moynihan.cache")
+                .arg("/tmp/moynihan.cache.bak")
+                .output()
+                .expect("Failed to backup exists cache file");
+            }
+        let mut f = File::create(cache_file_path).unwrap();
+        let test_payload_1 = "\"GET /hoge HTTP/1.1\"";
+        let test_payload_2 = "\"GET /fuga HTTP/1.1\"";
+        f.write_all(test_payload_1.as_bytes()).unwrap();
+        assert!(check_cache(test_payload_1));
+        assert!(!check_cache(test_payload_2));
+        //fs::remove_file(cache_file_path).unwrap();
     }
 }
