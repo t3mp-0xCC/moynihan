@@ -10,7 +10,7 @@ use notify::{
     Config, EventKind,
     event::{ModifyKind, DataChange},
 };
-use std::io::{BufRead, BufReader, BufWriter, Write};
+use std::io::{BufRead, BufReader, LineWriter, Write};
 use std::path::Path;
 use std::fs::File;
 
@@ -39,7 +39,7 @@ fn get_latest_log(log_path: &Path) -> String {
     last_log
 }
 
-fn add_payload_to_cache(payload: &str) -> Result<(), std::io::Error> {
+fn add_payload_to_cache(payload: &str) -> Result<usize, std::io::Error> {
     let cache_file_path = Path::new("/tmp/moynihan.cache");
     // cache_file init
     if !cache_file_path.exists() {
@@ -49,8 +49,10 @@ fn add_payload_to_cache(payload: &str) -> Result<(), std::io::Error> {
         };
     }
     let cache_file = File::open(cache_file_path)?;
-    let mut buf = BufWriter::new(cache_file);
-    writeln!(buf, "{}", payload)
+    let buf_input = BufReader::new(cache_file);
+    let cache_file = File::create(cache_file_path)?;
+    let mut buf_output = LineWriter::new(cache_file);
+    buf_output.write(payload.as_bytes())
 }
 
 fn check_cache(payload: &str) -> bool {
@@ -148,8 +150,13 @@ mod tests {
     #[test]
     fn add_payload_to_cache_test() {
         let test_payload_1 = "\"GET /hoge HTTP/1.1\"";
+        let test_payload_2 = "\"GET /fuga HTTP/1.1\"";
         match add_payload_to_cache(test_payload_1) {
-            Ok(()) => (),
+            Ok(_) => (),
+            Err(e) => panic!("{:?}", e)
+        };
+        match add_payload_to_cache(test_payload_2) {
+            Ok(_) => (),
             Err(e) => panic!("{:?}", e)
         };
     }

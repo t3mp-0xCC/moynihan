@@ -23,6 +23,7 @@ pub struct NginxErrLog {
 pub enum NginxParserErr {
     LogIsNotice,
     LogIsCritical,
+    LogIsAlert,
     InvalidLogFile,
 }
 impl fmt::Display for NginxParserErr {
@@ -30,6 +31,7 @@ impl fmt::Display for NginxParserErr {
         match *self {
             NginxParserErr::LogIsNotice => write!(f, "Notice detected at Nginx Error Log"),
             NginxParserErr::LogIsCritical => write!(f, "Critical detected at Nginx Error Log"),
+            NginxParserErr::LogIsAlert => write!(f, "Alert detected at Nginx Error Log"),
             NginxParserErr::InvalidLogFile => write!(f, "Invalid Nginx Error Log Detected"),
         }
     }
@@ -66,6 +68,11 @@ pub fn parser(log: String) -> ParserResult {
     //// if error is critical
     match info.find("[crit]") {
         Some(_) => return Err(NginxParserErr::LogIsCritical),
+        None => (),
+    }
+   //// if error is critical
+    match info.find("[alert]") {
+        Some(_) => return Err(NginxParserErr::LogIsAlert),
         None => (),
     }
 
@@ -106,9 +113,11 @@ mod parser_tests {
     fn parser_expect_log() {
         let notice_log = String::from("2022/09/24 03:20:53 [notice] 1117565#1117565: signal process started");
         let crit_log = String::from("2022/10/04 12:31:15 [crit] 1654810#1654810: *2021764 SSL_do_handshake() failed (SSL: error:141CF06C:SSL routines:tls_parse_ctos_key_share:bad key share) while SSL handshaking, client: 192.168.2.1, server: 0.0.0.0:443");
+        let alert_log = String::from("2022/09/24 03:20:53 [alert] 1117565#1117565: *14 open socket #27 left in connection 15");
         let invalid_log = String::from("hoge fuga piyo wanna eat SHUSHI");
         assert!(matches!(parser(notice_log).unwrap_err(), NginxParserErr::LogIsNotice));
         assert!(matches!(parser(crit_log).unwrap_err(), NginxParserErr::LogIsCritical));
+        assert!(matches!(parser(alert_log).unwrap_err(), NginxParserErr::LogIsAlert));
         assert!(matches!(parser(invalid_log).unwrap_err(), NginxParserErr::InvalidLogFile));
     }
 }
